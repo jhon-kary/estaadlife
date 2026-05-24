@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مشغل الويب الذكي الخارق - النسخة الاحترافية</title>
+    
+    <!-- مكتبة التشغيل المستقرة جداً -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.5.3/video-js.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.5.3/video.min.js"></script>
+    
+    <style>
+        body { background-color: #05070f; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .player-wrapper { width: 90%; max-width: 800px; background: #0b0f19; padding: 25px; border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,0.6); text-align: center; border: 1px solid #1e293b; }
+        
+        /* حاوية الفيديو الأساسية */
+        .video-container { 
+            width: 100%; 
+            aspect-ratio: 16/9; 
+            background: #000; 
+            border-radius: 10px; 
+            overflow: hidden; 
+            position: relative; /* مهم جداً لتثبيت اللوجو بالداخل */
+        }
+        .video-js { width: 100% !important; height: 100% !important; }
+        
+        /* 🎨 رتوش اللوجو والنص فوق المشغل */
+        .player-overlay {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            left: 15px;
+            display: flex;
+            justify-content: space-between; /* توزيع اللوجو على اليمين والنص على اليسار */
+            align-items: center;
+            z-index: 10; /* لجعل المكونات تظهر فوق الفيديو */
+            pointer-events: none; /* لمنع الطبقة من حجب نقرات الماوس على الفيديو */
+            user-select: none;
+        }
+        
+        .player-logo {
+            width: 50px; /* يمكنك التحكم في حجم اللوجو من هنا */
+            height: auto;
+            opacity: 0.8; /* شفافية خفيفة سينمائية */
+            filter: drop-shadow(0px 2px 4px rgba(0,0,0,0.8)); /* ظل خلف اللوجو ليظهر بوضوح في المشاهد المضيئة */
+        }
+        
+        .player-text {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            background: rgba(0, 0, 0, 0.5); /* خلفية سوداء خفيفة لتوضيح النص */
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px); /* تأثير زجاجي حديث */
+        }
+
+        h2 { color: #00f0ff; margin-bottom: 20px; text-shadow: 0 0 10px rgba(0,240,255,0.2); }
+        .status-badge { display: inline-block; padding: 8px 16px; background: #0f172a; color: #38bdf8; border-radius: 30px; font-size: 0.9rem; margin-top: 15px; border: 1px solid #334155; transition: all 0.3s ease; }
+    </style>
+</head>
+<body>
+
+<div class="player-wrapper">
+    <h2>📺 مشغل الويب المطور (النسخة الاحترافية)</h2>
+    
+    <div class="video-container">
+        
+        <!-- 🌟 طبقة اللوجو والنص الذكية -->
+        <div class="player-overlay">
+            <!-- ضع رابط شعارك المفضل مكان الرابط التجريبي أدناه -->
+            <img class="player-logo" src="https://i.ibb.co/tw3d04F2/cropped-transparent-300x300.png" alt="الشعار">
+            
+            <!-- نص صغير في الجهة المقابلة -->
+            <div class="player-text">فرجة ممتعة على موقعنا</div>
+        </div>
+
+        <!-- حاوية الفيديو الديناميكية -->
+        <div class="video-container" id="video-holder">
+            <!-- يتم توليد مشغل الفيديو هنا برمجياً لضمان تخطي تجمد السيرفر -->
+        </div>
+
+    </div>
+
+    <div class="status-badge" id="status-message">🟢 نظام المراقبة الذكي نشط ومستقر...</div>
+</div>
+
+<script>
+    const streamUrl = "";
+    const statusMessage = document.getElementById('status-message');
+    const videoHolder = document.getElementById('video-holder');
+    let player = null;
+    let reconnectTimer = null;
+
+    function createPlayer() {
+        videoHolder.innerHTML = `<video id="my-live-player" class="video-js vjs-default-skin vjs-big-play-centered" controls autoplay muted playsinline></video>`;
+        
+        player = videojs('my-live-player', {
+            fluid: true,
+            responsive: true,
+            liveui: true,
+            html5: {
+                vhs: { 
+                    overrideNative: true,
+                    maxBufferLength: 20,   
+                    backBufferLength: 10,  
+                    fastStart: true        
+                }
+            }
+        });
+
+        player.src({ src: streamUrl, type: 'application/x-mpegURL' });
+
+        player.ready(function() {
+            player.play().catch(e => console.log("بانتظار تفاعل المستخدم..."));
+        });
+
+        player.on('error', function() {
+            triggerEmergencyReconnect();
+        });
+
+        player.on('waiting', function() {
+            clearTimeout(reconnectTimer);
+            statusMessage.innerText = "🔄 جاري محاولة سحب البيانات المفقودة تلقائياً...";
+            statusMessage.style.color = "#38bdf8";
+            
+            reconnectTimer = setTimeout(() => {
+                triggerEmergencyReconnect();
+            }, 4000); 
+        });
+
+        player.on('playing', function() {
+            clearTimeout(reconnectTimer);
+            statusMessage.innerText = "🟢 تم استعادة البث والصورة بنجاح!";
+            statusMessage.style.color = "#34d399";
+        });
+    }
+
+    function triggerEmergencyReconnect() {
+        clearTimeout(reconnectTimer);
+        statusMessage.innerText = "⚠️ انقطاع حرج! جاري إنعاش المشغل صامتاً خلال ثانية...";
+        statusMessage.style.color = "#fbbf24";
+
+        if (player) {
+            try { player.dispose(); } catch (e) {}
+        }
+
+        setTimeout(() => {
+            createPlayer();
+        }, 1000);
+    }
+
+    createPlayer();
+</script>
+
+</body>
+</html>
